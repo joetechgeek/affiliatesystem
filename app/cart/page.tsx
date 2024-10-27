@@ -3,20 +3,15 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useCartStore } from '../../store/useCartStore'
-import { loadStripe } from '@stripe/stripe-js'
 import { validateCoupon } from '../../utils/couponValidation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Session } from '@supabase/supabase-js'
 import CheckoutButton from '../../components/CheckoutButton'
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
-
 export default function CartPage() {
   const { items, subtotal, updateQuantity, removeItem } = useCartStore()
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number; couponOwnerId: string } | null>(null)
-  const [checkoutError, setCheckoutError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
   const [couponError, setCouponError] = useState<string | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const supabase = createClientComponentClient()
@@ -70,53 +65,6 @@ export default function CartPage() {
   const total = appliedCoupon 
     ? subtotal() * (1 - appliedCoupon.discountAmount)
     : subtotal()
-
-  const handleCheckout = async () => {
-    setIsLoading(true)
-    setCheckoutError(null)
-
-    try {
-      const response = await fetch('/api/webhooks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          items: items.map(item => ({
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: item.product.name,
-              },
-              unit_amount: Math.round(item.product.price * 100),
-            },
-            quantity: item.quantity,
-          })),
-          couponCode: appliedCoupon?.code,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}. Details: ${errorText}`);
-      }
-
-      const { sessionUrl } = await response.json()
-      
-      if (!sessionUrl) {
-        throw new Error('No session URL returned from the server');
-      }
-
-      // Redirect to Stripe Checkout
-      window.location.href = sessionUrl;
-    } catch (error: unknown) {
-      console.error('Checkout error:', error)
-      setCheckoutError(`An error occurred during checkout: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again or contact support.`)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const removeCoupon = () => {
     setAppliedCoupon(null)
@@ -180,18 +128,6 @@ export default function CartPage() {
             {couponError && <p className="text-red-500 mt-2">{couponError}</p>}
             {appliedCoupon && (
               <p className="text-green-500 mt-2">Coupon applied: {appliedCoupon.code} (10% discount)</p>
-            )}
-            {appliedCoupon && (
-              <p>Don&apos;t forget to check out our other products!</p>
-            )}
-            {appliedCoupon && (
-              <p>We&apos;re always adding new items to our inventory.</p>
-            )}
-            {appliedCoupon && (
-              <p>If you&apos;re not satisfied, we offer a 30-day money-back guarantee.</p>
-            )}
-            {appliedCoupon && (
-              <p>{`You're saving $${(subtotal() * appliedCoupon.discountAmount).toFixed(2)}`}</p>
             )}
             {appliedCoupon && (
               <button

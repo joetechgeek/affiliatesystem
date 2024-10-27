@@ -21,6 +21,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               src={product.image_url}
               alt={product.alt_image || product.name}
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="object-cover rounded"
               onError={() => setImageError(true)}
             />

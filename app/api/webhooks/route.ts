@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       throw new Error('Invalid items data');
     }
 
-    let lineItems = items.map((item: any) => ({
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item: {price_data: {product_data: {name: string}, unit_amount: number}, quantity: number}) => ({
       price_data: {
         currency: 'usd',
         product_data: {
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       quantity: item.quantity,
     }));
 
-    let sessionParams: Stripe.Checkout.SessionCreateParams = {
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
@@ -57,8 +57,8 @@ export async function POST(req: Request) {
     console.log('Stripe session created:', session.id);
 
     return NextResponse.json({ sessionUrl: session.url })
-  } catch (err: any) {
+  } catch (err) {
     console.error('Error creating checkout session:', err)
-    return NextResponse.json({ error: { message: err.message || 'An unknown error occurred' } }, { status: 500 })
+    return NextResponse.json({ error: { message: err instanceof Error ? err.message : 'An unknown error occurred' } }, { status: 500 })
   }
 }

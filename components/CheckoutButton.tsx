@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { CartItem } from '@/types/cart';
+import { useRouter } from 'next/navigation';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 interface CheckoutButtonProps {
   items: CartItem[];
@@ -10,10 +12,20 @@ interface CheckoutButtonProps {
 export default function CheckoutButton({ items, couponCode, discountAmount }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const router = useRouter();
+  const supabase = createClientComponentClient();
 
   const handleCheckout = async () => {
     setIsLoading(true);
     setCheckoutError(null);
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      // Redirect to login page with return URL
+      router.push(`/login?redirectTo=${encodeURIComponent('/cart')}`);
+      return;
+    }
 
     try {
       console.log('Sending checkout request with:', { items, couponCode, discountAmount });

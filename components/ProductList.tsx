@@ -1,5 +1,7 @@
-import { Product } from '../types/product'
+"use client"
+
 import ProductCard from './ProductCard'
+import { Product } from '../types/product'
 
 type ProductListProps = {
   products: Product[]

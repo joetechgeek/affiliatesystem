@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../../utils/supabase'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 type Profile = {
   id: string
@@ -13,146 +13,65 @@ type Profile = {
   coupon_code: string
 }
 
-export default function Profile() {
+export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-
-        if (error) {
-          console.error('Error fetching profile:', error)
-        } else {
-          setProfile(data)
-        }
-      } else {
-        router.push('/login')
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        router.push('/login?redirectTo=/profile')
+        return
       }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+
+      if (error) {
+        console.error('Error fetching profile:', error)
+      } else {
+        setProfile(data)
+      }
+      setIsLoading(false)
     }
 
     fetchProfile()
-  }, [router])
+  }, [router, supabase])
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
+  if (isLoading) {
+    return <div>Loading...</div>
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setProfile(prev => prev ? { ...prev, [name]: value } : null)
+  if (!profile) {
+    return <div>Error loading profile</div>
   }
-
-  const handleSave = async () => {
-    if (profile) {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          email: profile.email,
-          phone_number: profile.phone_number
-        })
-        .eq('id', profile.id)
-
-      if (error) {
-        console.error('Error updating profile:', error)
-      } else {
-        setIsEditing(false)
-      }
-    }
-  }
-
-  const copyToClipboard = () => {
-    if (profile) {
-      navigator.clipboard.writeText(profile.coupon_code)
-      alert('Coupon code copied to clipboard!')
-    }
-  }
-
-  if (!profile) return <div>Loading...</div>
 
   return (
-    <div className="container mx-auto px-4 py-8 flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-8">Profile</h1>
-      <div className="w-full max-w-md">
-        {isEditing ? (
-          <>
-            <input
-              type="text"
-              name="first_name"
-              value={profile.first_name}
-              onChange={handleInputChange}
-              className="w-full p-2 mb-4 border rounded"
-            />
-            <input
-              type="text"
-              name="last_name"
-              value={profile.last_name}
-              onChange={handleInputChange}
-              className="w-full p-2 mb-4 border rounded"
-            />
-            <input
-              type="email"
-              name="email"
-              value={profile.email}
-              onChange={handleInputChange}
-              className="w-full p-2 mb-4 border rounded"
-            />
-            <input
-              type="tel"
-              name="phone_number"
-              value={profile.phone_number || ''}
-              onChange={handleInputChange}
-              placeholder="Phone Number"
-              className="w-full p-2 mb-4 border rounded"
-            />
-          </>
-        ) : (
-          <>
-            <p className="mb-2">Name: {profile.first_name} {profile.last_name}</p>
-            <p className="mb-2">Email: {profile.email}</p>
-            <p className="mb-2">Phone: {profile.phone_number || 'Not provided'}</p>
-          </>
-        )}
-        <div className="flex items-center mb-4">
-          <p className="mr-2">Coupon Code: {profile.coupon_code}</p>
-          <button
-            onClick={copyToClipboard}
-            className="bg-gray-200 p-2 rounded hover:bg-gray-300"
-          >
-            📋
-          </button>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">Your Profile</h1>
+      <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2">Name</label>
+          <p>{profile.first_name} {profile.last_name}</p>
         </div>
-        {isEditing ? (
-          <button
-            onClick={handleSave}
-            className="w-full p-2 bg-green-500 text-white rounded hover:bg-green-600 mb-4"
-          >
-            Save Changes
-          </button>
-        ) : (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 mb-4"
-          >
-            Edit Profile
-          </button>
-        )}
-        <button
-          onClick={handleLogout}
-          className="w-full p-2 bg-red-500 text-white rounded hover:bg-red-600"
-        >
-          Log Out
-        </button>
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
+          <p>{profile.email}</p>
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2">Phone Number</label>
+          <p>{profile.phone_number || 'Not provided'}</p>
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2">Your Coupon Code</label>
+          <p>{profile.coupon_code}</p>
+        </div>
       </div>
     </div>
   )
