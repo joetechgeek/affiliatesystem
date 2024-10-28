@@ -15,8 +15,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Our Store",
-  description: "Welcome to our online store",
+  title: "Double Lee",
+  description: "Welcome to Double Lee store",
 };
 
 export default function RootLayout({
