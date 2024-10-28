@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useCartStore } from '../store/useCartStore'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function Navigation() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -13,6 +14,7 @@ export default function Navigation() {
   const pathname = usePathname()
   const supabase = createClientComponentClient()
   const itemCount = useCartStore((state) => state.itemCount())
+  const { user } = useAuth()
 
   useEffect(() => {
     const checkUser = async () => {
@@ -86,6 +88,11 @@ export default function Navigation() {
               <button onClick={handleSignIn} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors">
                 Login
               </button>
+            )}
+            {user?.email === 'joetechgeek@gmail.com' && (
+              <Link href="/admin" className="nav-link">
+                Admin
+              </Link>
             )}
           </div>
         </div>
