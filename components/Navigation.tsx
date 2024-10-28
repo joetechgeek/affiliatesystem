@@ -63,7 +63,7 @@ export default function Navigation() {
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold hover:text-gray-300 transition-colors">
-            Our Store
+            Double Lee
           </Link>
           <div className="flex items-center space-x-4">
             <Link href="/cart" className="flex items-center hover:text-gray-300 transition-colors">
