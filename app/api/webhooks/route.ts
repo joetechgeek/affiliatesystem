@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json()
     console.log('Received request body:', body);
-    const { items, couponCode, discountAmount } = body
+    const { items, couponCode, discountAmount, userId } = body
 
     if (!items || !Array.isArray(items)) {
       throw new Error('Invalid items data');
@@ -37,6 +37,15 @@ export async function POST(req: Request) {
       mode: 'payment',
       success_url: `${req.headers.get('origin')}/order-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/cart`,
+      client_reference_id: userId,
+      metadata: {
+        coupon_code: couponCode,
+        items: JSON.stringify(items.map(item => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          price: item.price_data.unit_amount / 100
+        })))
+      }
     };
 
     // Apply discount if coupon is valid
