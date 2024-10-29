@@ -43,7 +43,8 @@ export async function POST(req: Request) {
         items: JSON.stringify(items.map(item => ({
           product_id: item.id,
           quantity: item.quantity,
-          price: item.price_data.unit_amount / 100
+          price: item.price_data.unit_amount / 100,
+          name: item.price_data.product_data.name
         })))
       }
     };

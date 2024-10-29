@@ -44,57 +44,51 @@ export async function POST(req: Request) {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session
 
-      // Get full session details with line items
-      const checkoutSession = await stripe.checkout.sessions.retrieve(session.id, {
-        expand: ['line_items']
-      })
+      try {
+        // Parse the items from metadata
+        const items = JSON.parse(session.metadata?.items || '[]');
+        
+        // 1. Insert order_items
+        for (const item of items) {
+          const { error: orderItemError } = await supabase
+            .from('order_items')
+            .insert({
+              order_id: session.metadata?.order_id, // Make sure this is passed from the order creation
+              product_id: item.product_id,
+              quantity: item.quantity,
+              price: item.price
+            });
 
-      // Parse metadata
-      const items = checkoutSession.metadata?.items 
-        ? JSON.parse(checkoutSession.metadata.items)
-        : []
-
-      // Step 1: Create order and handle coupon/commission
-      const { data: orderResult, error: orderError } = await supabase.rpc(
-        'handle_successful_order',
-        {
-          p_session_id: session.id,
-          p_payment_intent_id: session.payment_intent as string,
-          p_total_amount: session.amount_total! / 100,
-          p_user_id: session.client_reference_id,
-          p_coupon_code: session.metadata?.coupon_code,
-          p_discount_amount: session.total_details?.amount_discount 
-            ? session.total_details.amount_discount / 100 
-            : 0
+          if (orderItemError) throw orderItemError;
         }
-      )
 
-      if (orderError) {
-        console.error('Error processing order:', orderError)
-        throw new Error(`Error processing order: ${orderError.message}`)
-      }
+        // 2. Update coupons table if coupon was used
+        if (session.metadata?.coupon_code) {
+          const { error: couponError } = await supabase
+            .from('coupons')
+            .insert({
+              code: session.metadata.coupon_code,
+              used: true,
+              used_by: session.client_reference_id, // This is the user_id
+              used_at: new Date().toISOString(),
+              user_id: session.metadata.issuer_id, // Make sure this is passed
+              discount_amount: session.total_details?.amount_discount 
+                ? (session.total_details.amount_discount / 100) 
+                : 0.1
+            });
 
-      // Step 2: Handle order items and update stock
-      const { error: itemsError } = await supabase.rpc(
-        'handle_order_items',
-        {
-          p_order_id: orderResult.order_id,
-          p_items: JSON.stringify(items)
+          if (couponError) throw couponError;
         }
-      )
 
-      if (itemsError) {
-        console.error('Error processing order items:', itemsError)
-        throw new Error(`Error processing order items: ${itemsError.message}`)
+        return NextResponse.json({ success: true });
+        
+      } catch (error) {
+        console.error('Error processing webhook:', error);
+        return NextResponse.json(
+          { error: 'Error processing webhook' },
+          { status: 500 }
+        );
       }
-
-      // Log successful processing
-      console.log(`Successfully processed order ${orderResult.order_id} for session ${session.id}`)
-
-      return NextResponse.json({
-        success: true,
-        orderId: orderResult.order_id
-      })
     }
 
     // Handle other event types if needed

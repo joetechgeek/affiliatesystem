@@ -81,23 +81,3 @@ create table
     constraint commissions_issuer_id_fkey foreign key (issuer_id) references profiles (id),
     constraint commissions_order_id_fkey foreign key (order_id) references orders (id)
   ) tablespace pg_default;
-
-  FUNCTIONS:
-
-  
-BEGIN
-  UPDATE products
-  SET stock = GREATEST(stock - quantity, 0)
-  WHERE id = p_id;
-END;
-
-
-
-BEGIN
-  INSERT INTO public.profiles (id, first_name, last_name, email, coupon_code)
-  VALUES (NEW.id, NEW.raw_user_meta_data->>'first_name', NEW.raw_user_meta_data->>'last_name', NEW.email, NEW.raw_user_meta_data->>'coupon_code');
-  RETURN NEW;
-END;
-
-
-TRIGGERS:
