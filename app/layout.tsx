@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Navigation from '../components/Navigation'
+import AIProductAssistant from '../components/AIProductAssistant';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -15,8 +16,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Double Lee",
-  description: "Welcome to Double Lee store",
+  title: "JoeTechStore",
+  description: "Welcome to JoeTechStore",
 };
 
 export default function RootLayout({
@@ -33,6 +34,7 @@ export default function RootLayout({
         <main className="container mx-auto px-4 py-8">
           {children}
         </main>
+        <AIProductAssistant />
       </body>
     </html>
   );

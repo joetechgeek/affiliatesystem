@@ -32,7 +32,7 @@ interface Order {
 export default function OrderManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const supabase = createClientComponentClient();
 
   const loadOrders = useCallback(async () => {
@@ -41,21 +41,32 @@ export default function OrderManagement() {
         .from('orders')
         .select(`
           *,
-          profiles (first_name, last_name, email),
+          profiles:user_id (
+            first_name,
+            last_name,
+            email
+          ),
           order_items (
             id,
             product_id,
             quantity,
             price,
-            products (name)
+            products:product_id (
+              name
+            )
           )
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+
       setOrders(data || []);
-    } catch (error) {
-      console.error('Error loading orders:', error);
+      setError(null);
+    } catch (err) {
+      console.error('Error loading orders:', err);
+      setError('Failed to load orders. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -65,98 +76,35 @@ export default function OrderManagement() {
     loadOrders();
   }, [loadOrders]);
 
-  async function updateOrderStatus(orderId: number, status: string) {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status })
-        .eq('id', orderId);
-
-      if (error) throw error;
-      loadOrders();
-    } catch (error) {
-      console.error('Error updating order status:', error);
-    }
-  }
-
-  if (loading) return <div>Loading orders...</div>;
+  if (loading) return <div className="text-black">Loading orders...</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Order Management</h2>
-
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold mb-4 text-black">Order Management</h2>
       <div className="grid gap-4">
-        {orders.map(order => (
+        {orders.map((order) => (
           <div key={order.id} className="bg-white p-4 rounded-lg shadow">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-bold">Order #{order.id}</h3>
-                <p className="text-gray-600">
-                  {order.profiles?.first_name} {order.profiles?.last_name}
-                </p>
-                <p className="text-gray-600">{order.profiles?.email}</p>
-                <p className="text-gray-600">
-                  Total: ${order.total_amount} - Status: 
-                  <select
-                    value={order.status}
-                    onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                    className="ml-2 border rounded p-1"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="processing">Processing</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </p>
+            <div className="text-black">
+              <h3 className="text-xl font-semibold">Order #{order.id}</h3>
+              <p>Customer: {order.profiles?.first_name} {order.profiles?.last_name}</p>
+              <p>Email: {order.profiles?.email}</p>
+              <p>Total Amount: ${order.total_amount}</p>
+              <p>Status: {order.status}</p>
+              <p>Date: {new Date(order.created_at).toLocaleDateString()}</p>
+              
+              <div className="mt-2">
+                <h4 className="font-semibold">Order Items:</h4>
+                {order.order_items?.map((item) => (
+                  <div key={item.id} className="ml-4">
+                    <p>{item.products?.name} - Qty: {item.quantity} - ${item.price}</p>
+                  </div>
+                ))}
               </div>
-              <button
-                onClick={() => setSelectedOrder(order)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
-              >
-                View Details
-              </button>
             </div>
           </div>
         ))}
       </div>
-
-      {selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
-            <h3 className="text-xl font-bold mb-4">Order Details #{selectedOrder.id}</h3>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-bold">Items:</h4>
-                {selectedOrder.order_items.map(item => (
-                  <div key={item.id} className="flex justify-between py-2 border-b">
-                    <span>{item.products.name} x {item.quantity}</span>
-                    <span>${item.price * item.quantity}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-2">
-                <p><strong>Subtotal:</strong> ${selectedOrder.total_amount}</p>
-                {selectedOrder.discount_applied > 0 && (
-                  <p><strong>Discount:</strong> ${selectedOrder.discount_applied}</p>
-                )}
-                {selectedOrder.coupon_code && (
-                  <p><strong>Coupon:</strong> {selectedOrder.coupon_code}</p>
-                )}
-                <p><strong>Status:</strong> {selectedOrder.status}</p>
-                <p><strong>Created:</strong> {new Date(selectedOrder.created_at).toLocaleString()}</p>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setSelectedOrder(null)}
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

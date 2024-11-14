@@ -80,6 +80,11 @@ export default function Navigation() {
                 <Link href="/orders" className="hover:text-gray-300 transition-colors">
                   Orders
                 </Link>
+                {user?.email === 'joetechgeek@gmail.com' && (
+                  <Link href="/admin" className="nav-link">
+                    Admin
+                  </Link>
+                )}
                 <button onClick={handleSignOut} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition-colors">
                   Logout
                 </button>
@@ -88,11 +93,6 @@ export default function Navigation() {
               <button onClick={handleSignIn} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors">
                 Login
               </button>
-            )}
-            {user?.email === 'joetechgeek@gmail.com' && (
-              <Link href="/admin" className="nav-link">
-                Admin
-              </Link>
             )}
           </div>
         </div>

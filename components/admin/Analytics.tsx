@@ -11,18 +11,14 @@ interface SalesData {
 }
 
 interface TopProduct {
+  product_id: number;
   name: string;
-  total_sold: number;
-  revenue: number;
+  total_quantity: number;
+  total_revenue: number;
 }
 
-interface CommissionData {
-  total_commissions: number;
-  paid_commissions: number;
-  unpaid_commissions: number;
-}
-
-interface SupabaseOrderItem {
+interface ProductData {
+  product_id: number;
   quantity: number;
   price: number;
   products: {
@@ -33,90 +29,66 @@ interface SupabaseOrderItem {
 export default function Analytics() {
   const [salesData, setSalesData] = useState<SalesData | null>(null);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
-  const [commissionData, setCommissionData] = useState<CommissionData | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClientComponentClient();
 
   const loadAnalytics = useCallback(async () => {
     try {
-      // Fetch sales data
-      const { data: orders, error: ordersError } = await supabase
+      // Fetch basic sales metrics
+      const { data: salesMetrics, error: salesError } = await supabase
         .from('orders')
         .select('total_amount, user_id');
-      
-      if (ordersError) throw ordersError;
 
-      // Calculate sales metrics
-      const totalRevenue = orders?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
-      const totalOrders = orders?.length || 0;
-      const uniqueCustomers = new Set(orders?.map(order => order.user_id)).size;
-      const averageOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
+      if (salesError) throw salesError;
+
+      // Calculate basic metrics
+      const totalRevenue = salesMetrics?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
+      const totalOrders = salesMetrics?.length || 0;
+      const uniqueCustomers = new Set(salesMetrics?.map(order => order.user_id)).size;
+      const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
       setSalesData({
         totalRevenue,
         totalOrders,
         totalCustomers: uniqueCustomers,
-        averageOrderValue
+        averageOrderValue,
       });
 
-      // Fetch top products with proper typing
-      const { data: orderItems, error: itemsError } = await supabase
+      // Fetch top products with type annotation
+      const { data: productData, error: productError } = await supabase
         .from('order_items')
         .select(`
+          product_id,
           quantity,
           price,
-          products:products (
+          products:product_id (
             name
           )
-        `);
+        `) as { data: ProductData[], error: any };
 
-      if (itemsError) throw itemsError;
+      if (productError) throw productError;
 
-      // Safely type the orderItems and handle the data
-      const typedOrderItems = (orderItems as unknown as SupabaseOrderItem[])?.map(item => ({
-        quantity: item.quantity,
-        price: item.price,
-        products: {
-          name: item.products.name
-        }
-      }));
-
-      // Calculate product metrics with properly typed data
-      const productStats = (typedOrderItems || []).reduce((acc: Record<string, TopProduct>, item) => {
-        const productName = item.products.name;
-        if (!acc[productName]) {
-          acc[productName] = {
-            name: productName,
-            total_sold: 0,
-            revenue: 0
+      // Process top products data with proper typing
+      const productStats = productData.reduce((acc: { [key: number]: TopProduct }, item) => {
+        if (!acc[item.product_id]) {
+          acc[item.product_id] = {
+            product_id: item.product_id,
+            name: item.products.name || 'Unknown Product',
+            total_quantity: 0,
+            total_revenue: 0,
           };
         }
-        acc[productName].total_sold += item.quantity;
-        acc[productName].revenue += item.price * item.quantity;
+        acc[item.product_id].total_quantity += item.quantity;
+        acc[item.product_id].total_revenue += item.price * item.quantity;
         return acc;
       }, {});
 
-      setTopProducts(Object.values(productStats)
-        .sort((a, b) => b.revenue - a.revenue)
-        .slice(0, 5));
+      // Convert to array and sort by revenue
+      const topProductsArray = Object.values(productStats)
+        .sort((a, b) => b.total_revenue - a.total_revenue)
+        .slice(0, 5); // Get top 5 products
 
-      // Fetch commission data
-      const { data: commissions, error: commissionsError } = await supabase
-        .from('commissions')
-        .select('commission_amount, paid');
-
-      if (commissionsError) throw commissionsError;
-
-      const totalCommissions = commissions?.reduce((sum, comm) => sum + comm.commission_amount, 0) || 0;
-      const paidCommissions = commissions?.reduce((sum, comm) => 
-        comm.paid ? sum + comm.commission_amount : sum, 0) || 0;
-
-      setCommissionData({
-        total_commissions: totalCommissions,
-        paid_commissions: paidCommissions,
-        unpaid_commissions: totalCommissions - paidCommissions
-      });
-
+      setTopProducts(topProductsArray);
     } catch (error) {
       console.error('Error loading analytics:', error);
     } finally {
@@ -128,68 +100,47 @@ export default function Analytics() {
     loadAnalytics();
   }, [loadAnalytics]);
 
-  if (loading) return <div>Loading analytics...</div>;
+  if (loading) return <div className="text-black">Loading analytics...</div>;
 
   return (
     <div className="space-y-8">
-      <h2 className="text-2xl font-bold">Analytics Dashboard</h2>
+      <h2 className="text-2xl font-bold text-black">Analytics Dashboard</h2>
 
       {/* Sales Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-gray-500">Total Revenue</h3>
-          <p className="text-2xl font-bold">${salesData?.totalRevenue.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-black">${salesData?.totalRevenue.toFixed(2)}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-gray-500">Total Orders</h3>
-          <p className="text-2xl font-bold">{salesData?.totalOrders}</p>
+          <p className="text-2xl font-bold text-black">{salesData?.totalOrders}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-gray-500">Total Customers</h3>
-          <p className="text-2xl font-bold">{salesData?.totalCustomers}</p>
+          <p className="text-2xl font-bold text-black">{salesData?.totalCustomers}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-gray-500">Average Order Value</h3>
-          <p className="text-2xl font-bold">${salesData?.averageOrderValue.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-black">${salesData?.averageOrderValue.toFixed(2)}</p>
         </div>
       </div>
 
       {/* Top Products */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-xl font-bold mb-4">Top Products</h3>
+        <h3 className="text-xl font-bold mb-4 text-black">Top Products</h3>
         <div className="space-y-4">
-          {topProducts.map(product => (
-            <div key={product.name} className="flex justify-between items-center border-b pb-2">
-              <div>
+          {topProducts.map((product) => (
+            <div key={product.product_id} className="flex justify-between items-center border-b pb-2">
+              <div className="text-black">
                 <p className="font-semibold">{product.name}</p>
-                <p className="text-sm text-gray-500">Sold: {product.total_sold}</p>
+                <p className="text-sm text-gray-500">Quantity Sold: {product.total_quantity}</p>
               </div>
-              <p className="font-bold">${product.revenue.toFixed(2)}</p>
+              <p className="text-black font-semibold">
+                ${product.total_revenue.toFixed(2)}
+              </p>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Commission Overview */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-xl font-bold mb-4">Commission Overview</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <h4 className="text-gray-500">Total Commissions</h4>
-            <p className="text-2xl font-bold">${commissionData?.total_commissions.toFixed(2)}</p>
-          </div>
-          <div>
-            <h4 className="text-gray-500">Paid Commissions</h4>
-            <p className="text-2xl font-bold text-green-500">
-              ${commissionData?.paid_commissions.toFixed(2)}
-            </p>
-          </div>
-          <div>
-            <h4 className="text-gray-500">Unpaid Commissions</h4>
-            <p className="text-2xl font-bold text-yellow-500">
-              ${commissionData?.unpaid_commissions.toFixed(2)}
-            </p>
-          </div>
         </div>
       </div>
     </div>
