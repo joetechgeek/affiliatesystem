@@ -10,12 +10,12 @@
     "clean": "rimraf .next && rimraf node_modules/.cache"
   },
   "dependencies": {
-    "ai": "2.2.37",
     "@huggingface/inference": "^2.6.4",
     "@stripe/react-stripe-js": "^2.8.1",
     "@stripe/stripe-js": "^4.9.0",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.45.6",
+    "ai": "2.2.37",
     "next": "^15.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -28,9 +28,12 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/stripe": "^8.0.416",
+    "@typescript-eslint/eslint-plugin": "^8.14.0",
+    "@typescript-eslint/parser": "^8.14.0",
     "eslint": "^8",
     "eslint-config-next": "15.0.1",
     "postcss": "^8",
+    "rimraf": "^5.0.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }

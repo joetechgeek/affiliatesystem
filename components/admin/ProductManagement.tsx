@@ -41,7 +41,10 @@ export default function ProductManagement() {
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
-    // ... rest of your edit logic
+  };
+
+  const handleCloseEdit = () => {
+    setEditingProduct(null);
   };
 
   if (loading) return <div className="text-black">Loading products...</div>;
@@ -80,7 +83,20 @@ export default function ProductManagement() {
         ))}
       </div>
       
-      {/* Add edit form modal/component here if needed */}
+      {editingProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg max-w-lg w-full">
+            <h3 className="text-xl font-bold mb-4 text-black">Edit Product</h3>
+            {/* Add your edit form here */}
+            <button
+              onClick={handleCloseEdit}
+              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

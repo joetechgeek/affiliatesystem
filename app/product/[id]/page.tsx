@@ -67,18 +67,13 @@ export default function ProductPage() {
       {notification && <Notification message={notification} />}
       <div className="flex flex-col md:flex-row gap-8">
         <div className="md:w-1/2 relative h-[400px]">
-          {product.image_url ? (
-            <Image
-              src={product.image_url}
-              alt={product.alt_image || product.name}
-              fill
-              className="object-cover rounded"
-            />
-          ) : (
-            <div className="w-full h-full bg-gray-200 flex items-center justify-center rounded">
-              <span className="text-gray-500">No image available</span>
-            </div>
-          )}
+          <Image
+            src={product.image_url || '/placeholder.jpg'}
+            alt={product.alt_image || product.name || 'Product image'}
+            fill
+            className="object-cover rounded"
+            priority
+          />
         </div>
         <div className="md:w-1/2">
           <h1 className="text-3xl font-bold mb-4">{product.name}</h1>

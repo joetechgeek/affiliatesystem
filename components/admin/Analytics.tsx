@@ -26,11 +26,6 @@ interface ProductData {
   };
 }
 
-type ChartData = {
-  labels: string[];
-  values: number[];
-};
-
 export default function Analytics() {
   const [salesData, setSalesData] = useState<SalesData | null>(null);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
@@ -69,7 +64,7 @@ export default function Analytics() {
           products:product_id (
             name
           )
-        `) as { data: ProductData[], error: any };
+        `) as { data: ProductData[]; error: Error | null };
 
       if (productError) throw productError;
 
