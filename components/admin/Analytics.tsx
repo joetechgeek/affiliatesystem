@@ -26,6 +26,11 @@ interface ProductData {
   };
 }
 
+type ChartData = {
+  labels: string[];
+  values: number[];
+};
+
 export default function Analytics() {
   const [salesData, setSalesData] = useState<SalesData | null>(null);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);

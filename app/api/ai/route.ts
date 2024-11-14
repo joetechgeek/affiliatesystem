@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   try {
     // Test Supabase connection first
     try {
-      const { data, error } = await supabase.from('products').select('count');
+      const { error } = await supabase.from('products').select('count');
       if (error) throw error;
       console.log(`[${requestId}] Supabase connection test successful`);
     } catch (e) {
@@ -223,9 +223,10 @@ Respond as Joe, being helpful and accurate. Only recommend products from the cat
 
 // Handle CORS preflight requests
 export async function OPTIONS(request: Request) {
+  const origin = request.headers.get('origin') || '*';
   return new Response(null, {
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },

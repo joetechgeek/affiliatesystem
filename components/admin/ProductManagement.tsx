@@ -39,6 +39,11 @@ export default function ProductManagement() {
     loadProducts();
   }, [loadProducts]);
 
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    // ... rest of your edit logic
+  };
+
   if (loading) return <div className="text-black">Loading products...</div>;
 
   return (
@@ -64,7 +69,7 @@ export default function ProductManagement() {
               </div>
               <div className="flex space-x-2">
                 <button
-                  onClick={() => setEditingProduct(product)}
+                  onClick={() => handleEdit(product)}
                   className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                 >
                   Edit
